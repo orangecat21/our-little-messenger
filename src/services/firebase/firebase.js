@@ -14,6 +14,9 @@ export default class Firebase {
         this._storage = firebase.storage();
         this.usersCollectionRef = this._database.collection('users');
         this.serverTimestamp = firebase.firestore.FieldValue.serverTimestamp;
+        this.user = null;
+        this.currentUserRef = null;
+        this.userData = null
         this.unsubscribeOnAuthState = this.subscribeOnAuthState();
     };
 
@@ -26,12 +29,15 @@ export default class Firebase {
             } else {
                 this.user = null;
                 this.currentUserRef = null;
+                this.userData = null;
             }
         }, (error) => {
             console.error(error);
             this.subscribeOnAuthState();
         });
     };
+
+    // TODO Написать метод отправки email для подтверждения
 
     createNewUser = (email, password) => {
         return this._auth.createUserWithEmailAndPassword(email, password)
