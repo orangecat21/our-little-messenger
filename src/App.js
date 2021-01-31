@@ -1,7 +1,14 @@
+import {useContext, useEffect} from 'react';
 import logo from './logo.svg';
 import './App.css';
 
+import FirebaseContext from './services/firebase/firebaseContext';
+
 function App() {
+  const firebase = useContext(FirebaseContext);
+  useEffect(() => {
+
+  }, [firebase]);
   return (
     <div className="App">
       <header className="App-header">
