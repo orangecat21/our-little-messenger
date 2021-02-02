@@ -13,10 +13,12 @@ export default class Firebase {
         this._database = firebase.firestore();
         this._storage = firebase.storage();
         this.usersCollectionRef = this._database.collection('users');
+        this.dialogsCollectionRef = this._database.collection('dialogs');
         this.serverTimestamp = firebase.firestore.FieldValue.serverTimestamp;
         this.user = null;
         this.currentUserRef = null;
-        this.userData = null
+        this.userData = null;
+        this.activeDialogRef = null;
         this.unsubscribeOnAuthState = this.subscribeOnAuthState();
     };
 
@@ -37,7 +39,9 @@ export default class Firebase {
         });
     };
 
-    // TODO Написать метод отправки email для подтверждения
+    verifyUserEmail = () => {
+        return this.user.sendEmailVerification();
+    };
 
     createNewUser = (email, password) => {
         return this._auth.createUserWithEmailAndPassword(email, password)
@@ -77,7 +81,7 @@ export default class Firebase {
     };
 
     addNewActiveChat = (participantId) => {
-        const newActiveChat = [ this.userData.activeChatsWith, participantId];
+        const newActiveChat = [this.userData.activeChatsWith, participantId];
         return this.currentUserRef.update({activeChatsWith: newActiveChat})
             .then(() => {
                 this.userData.activeChatsWith = newActiveChat;
@@ -101,7 +105,7 @@ export default class Firebase {
                 if (doc.exists) {
                     userData = doc.data();
                 } else {
-                    console.log('User dont Exist');
+                    console.log('User dont exist');
                 }
             }).catch(error => console.error(error));
         return userData;
@@ -114,5 +118,64 @@ export default class Firebase {
     signOut = () => {
         return this._auth.signOut();
     };
-}
 
+    createNewDialog = async (participantUid) => {
+        try {
+            const newDialogRef = await this.dialogsCollectionRef.doc();
+            await newDialogRef.set({
+                participants: [this.user.uid, participantUid],
+            });
+            this.activeDialogRef = newDialogRef;
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    sendMessage = (messageType, dialodId, data) => {
+        if (dialodId && messageType && data) {
+            return this.dialogsCollectionRef.doc(dialodId).collection('messages').add({
+                type: messageType,
+                date: this.serverTimestamp(),
+                ...data,
+            });
+
+        }
+    };
+
+    sendTextMessage = (dialogId, text) => {
+        if (text) {
+            const data = {text};
+            return this.sendMessage('text', dialogId, data);
+        }
+    };
+
+    sendImgMessage = (dialogId, text, linkOnFile) => {
+        if (linkOnFile) {
+            const data = {
+                linkOnFile,
+                text: text ? text : '',
+            }
+            return this.sendMessage('image', dialogId, data);
+        }
+    };
+
+    sendDocMessage = (dialogId, text, linkOnFile) => {
+        if (linkOnFile) {
+            const data = {
+                linkOnFile,
+                text: text ? text : '',
+            }
+            return this.sendMessage('document', dialogId, data);
+        }
+    };
+
+    // setActiveDialog = (participantUid) => {
+    //   return this.dialogsCollectionRef.where('participants', 'array-contains', this.user.uid)
+    //       .get()
+    //       .then((snapshot) => {
+    //           snapshot.forEach(doc => {
+    //
+    //           });
+    //       })
+    // };
+}
